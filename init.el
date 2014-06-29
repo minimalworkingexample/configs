@@ -9,25 +9,32 @@
 ;;; 
 ;;; 
 ;;; ----------------------------------------
-;;; notes:
+;;; set home
 
-;; The following packages are used and recommended, but not necessary
-;;       bookmark+, dired-details, outshine, todotxt, vimrc-mode, w3m
+(setq home "/h/")
 
-;;; TODOs
-;;;;
-;;;; random stuff
-;;;;; make bookmakrs part of aliases
-;;;;; fix up aliases for fast keys to targets
-;;;;;; brainstorm on locations (tech.org)
-;;;; hack for ownCloud org use
+;;; OS
 
-;; needs to not act on todotxt, make it directory specific
+(cond ((eq system-type 'gnu/linux)
+       (setq OS "linux"))
+      ((eq system-type 'windows-nt)
+       (setq OS "windows")))
 
-;; org-mode is enabled in .txt files
-;; (add-to-list 'auto-mode-alist '("\\.txt$" . org-mode))
+(when (string= OS "linux")
+  (setq emacsd (concat home ".emacs.d/"))
+  (set-face-attribute 'default nil
+                      :height 100
+                      )
+  )
 
-;;; ----------------------------------------
+(when (string= OS "windows")
+  (setq emacsd (concat home "AppData/Roaming/.emacs.d/"))
+  (set-face-attribute 'default nil
+                      :family "Consolas"
+                      :height 100
+                      )
+  )
+
 ;;; emacs-aesthetics
 ;;;; emacs-aesthetics
 
@@ -47,45 +54,67 @@
 
 (load-theme 'deeper-blue)
 
-;;;; font setting
-
-;; these seem to be the best in windows
-(set-face-attribute 'default nil
-		    :family "Consolas"
-		    :height 100
-		    )
-
-;;;; to wrap or not to wrap
-
-;; don't wrap text, except for org and tex files
-(setq-default truncate-lines t)
-(add-hook 'org-mode-hook 'visual-line-mode t)
-(add-hook 'LaTeX-mode-hook 'visual-line-mode t)
-
 ;;; locations
 
-(setq home "c:/Users/user-name/"
+;; set shareddrive as /f
+      ;; local documents
+
+;; (setq ntfspartition "/media/iam/ntfspartition/")
+;; (setq local ntfspartition)
+
+(setq home "/h/")
+(setq local "/e/local/")
+(setq configs "/e/configs/")
+
       ;; in home
-      owncloud (concat home "ownCloud/")
+(setq owncloud (concat home "ownCloud/")
       dropbox (concat home "Dropbox/")
-      emacsd (concat home "AppData/Roaming/.emacs.d/")
-      vimrc (concat home ".vimrc")
+      ;; vimrc (concat home ".vimrc")
       documents (concat home "Documents/")
-      local documents
       ;; in emacsd
-      init (concat emacsd "init.el")
-      bookmarks (concat emacsd "bookmarks")
+      ;; init (concat emacsd "init.el")
+      ;; bookmarks (concat emacsd "bookmarks")
       ;; in owncloud
       config (concat owncloud "config/")
       main (concat owncloud "main.txt")
       tech (concat owncloud "tech.txt")
       ;; in local
       routines (concat local "routines.org")
-      ;; in config
-      ;; vimrc (concat config ".vimrc")
-      ;; init (concat config "init.el")
-      ;; bookmarks (concat config "bookmarks")
+      ;; in configs
+      vimrc (concat configs ".vimrc")
+      init (concat configs "init.el")
+      bookmarks (concat configs "bookmarks")
       )
+
+;;; favoriteslist
+
+(setq favoriteslist '(("m" . main)
+                      ("t" . tech)
+                      ("i" . init)
+                      ("L" . local)
+                      ("O" . owncloud)
+                      ("C" . configs)
+                      ("r" . routines)
+                      ("v" . vimrc)
+                      ("j" . jobsearch)
+                      ("d" . documents)))
+
+;;; favorites jump-to- functions
+
+(dolist (x favoriteslist)
+  (let* ((sym (cdr x))
+         (func (intern (concat "jump-to-" (symbol-name sym)))))
+    (defalias func `(lambda ()
+                      (interactive)
+                      (find-file ,sym)))
+    (global-set-key (kbd (concat "C-c " (car x))) func)))
+
+;;; to wrap or not to wrap
+
+;; don't wrap text, except for org and tex files
+(setq-default truncate-lines t)
+(add-hook 'org-mode-hook 'visual-line-mode t)
+(add-hook 'LaTeX-mode-hook 'visual-line-mode t)
 
 ;;; packaging setup
 
@@ -102,17 +131,16 @@
 (package-initialize)
 
 ;;; config folding
-;;;; outline
+;;;; outline & outshine
 
 ;; when a .el file is opened, use outline-minor-mode
 (add-hook 'emacs-lisp-mode-hook 'outline-minor-mode)
-
-;;;; outshine
 
 ;; gives my init.el nice folding and keybinding defaults
 (when (locate-library "outshine")
   (autoload 'outshine-hook-function "outshine")
   (add-hook 'emacs-lisp-mode-hook 'outshine-hook-function))
+(setq outshine-startup-folded-p t) ; this doesn't work? 
 
 ;;;; vimrc mode, hideshow
 
@@ -126,46 +154,36 @@
     '(define-key hs-minor-mode-map (kbd "TAB") 'hs-toggle-hiding)))
 
 ;;; better nav settings
-;;;; bookmark+
-
-;; (setq bookmark-default-file "/e/emacs-config/bookmarks.d/main")
-;; (setq bmkp-last-as-first-bookmark-file nil)
-;; fix for buggy behavior, `L` Does not behave as expected,
-;; see approx. line 4000 of bookmark+-1.el
-;; (setq bmkp-last-bookmark-file      bookmark-default-file
-      ;; bmkp-current-bookmark-file   bookmark-default-file
-      ;; )
+;;;; bookmark(+)
 
 (setq bookmark-default-file bookmarks)
+(eval-after-load 'bookmark+
+  '(progn
+     (set-face-background 'bmkp-local-directory "midnight blue")
+     (set-face-foreground 'bmkp-heading nil)
+     (set-face-foreground 'bmkp-local-directory nil)
+     (set-face-foreground 'bmkp-local-file-without-region nil)
+     ))
 
-;; (when (locate-library "bookmark+")  
-  ;; (add-hook 'bookmark-bmenu-mode-hook
-	    ;; (lambda ()
-	      ;; (load "bookmark+"))))
-
-;; '(bmkp-heading ((t nil)))
-;; '(bmkp-local-file-without-region ((t nil)))
-
-;; (set-face-background 'bmkp-local-directory "midnight blue")
 
 ;;;; dired settings
 
 (setq-default dired-omit-files-p t)
 (setq dired-omit-files "^\\.?#\\|^\\.$\\|.csync_journal.db\\|.owncloudsync.log")
 (setq dired-details-hidden-string "")
-(add-hook 'dired-load-hook 
-	  (lambda () 
-	    (load "dired-x")
-	    (when (locate-library "dired-details")
-	      (load "dired-details")
-	      (dired-details-install)
-	      )
-	    ))
+(add-hook 'dired-load-hook
+          (lambda ()
+            (load "dired-x")
+            (when (locate-library "dired-details")
+              (load "dired-details")
+              (dired-details-install)
+              )
+            ))
 
 ;; if dired(-x) is not loaded, C-x C-j is undefined
-(defun undefined-c-x-c-j-loads-dired-and-jumps () 
-  (interactive) 
-  (load "dired") 
+(defun undefined-c-x-c-j-loads-dired-and-jumps ()
+  (interactive)
+  (load "dired")
   (dired-jump))
 (global-set-key (kbd "C-x C-j") 'undefined-c-x-c-j-loads-dired-and-jumps)
 
@@ -173,7 +191,7 @@
 
 ;; make navigation via minibuffer easier to see (vertical list)
 (ido-mode 1)
-(setq ido-decorations '("\n-> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]"))
+(setq ido-decorations '("\n-> " "" "\n " "\n ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]"))
 (setq ido-default-buffer-method 'selected-window)
 
 ;;;; ibuffer
@@ -199,61 +217,45 @@
 (global-set-key (kbd "S-C-<down>") 'shrink-window)
 (global-set-key (kbd "S-C-<up>") 'enlarge-window)
 
-;;; TODO miscellaneous
-;;;; TODO custom functions
-;;;;; TODO jump to <favorites> (manual bookmarks)
+;;; miscellaneous
+;;;; custom functions
+;;;;; utf-8 and unix line endings
 
-;; because emacs' bookmarks aren't fast enough for me
-;; i want to jump directly to my favorite files
-;; with very few keystrokes
+;; (set-locale-environment "en_US.UTF-8")
 
-;; (dolist 
-    ;; '((location . key)
-      ;; (location . key)
-      ;; ...
-      ;; )
-  ;; (defun jump-to- <location> ()
-    ;; (interactive)
-    ;; (find-file location))
-  ;; (global-set-key (kbd "C-c <key>") 'jump-to- <location>)
-  ;; )
+;; (prefer-coding-system 'utf-8-unix)
+;; (set-default-coding-systems 'utf-8-unix)
+;; (set-terminal-coding-system 'utf-8-unix)
+;; (set-keyboard-coding-system 'utf-8-unix)
+;; (set-selection-coding-system 'utf-8-unix)
+;; (setq-default buffer-file-coding-system 'utf-8-unix)
 
-(defun jump-to-main-dot-org ()
+ ;; (setq buffer-file-coding-system 'utf-8-unix)
+ ;; (setq default-file-name-coding-system 'utf-8-unix)
+ ;; (setq default-keyboard-coding-system 'utf-8-unix)
+ ;; (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+ ;; (setq default-sendmail-coding-system 'utf-8-unix)
+ ;; (setq default-terminal-coding-system 'utf-8-unix)
+
+;; (set-language-environment "UTF-8")
+;; (set-default buffer-file-coding-system 'utf-8-unix)
+;; (set-default-coding-systems 'utf-8-unix)
+;; (set-default default-buffer-file-coding-system 'utf-8-unix)
+
+;; (setq coding-system-for-read 'utf-8-unix)
+;; (setq coding-system-for-write 'utf-8-unix)
+
+;; (prefer-coding-system 'utf-8-unix)
+
+;; (setq file-coding-system-alist (quote (("" utf-8 . utf-8) ("\\.dz\\'" no-conversion . no-conversion) ("\\.xz\\'" no-conversion . no-conversion) ("\\.lzma\\'" no-conversion . no-conversion) ("\\.lz\\'" no-conversion . no-conversion) ("\\.g?z\\'" no-conversion . no-conversion) ("\\.\\(?:tgz\\|svgz\\|sifz\\)\\'" no-conversion . no-conversion) ("\\.tbz2?\\'" no-conversion . no-conversion) ("\\.bz2\\'" no-conversion . no-conversion) ("\\.Z\\'" no-conversion . no-conversion) ("\\.elc\\'" . utf-8-emacs) ("\\.utf\\(-8\\)?\\'" . utf-8) ("\\.xml\\'" . xml-find-file-coding-system) ("\\(\\`\\|/\\)loaddefs.el\\'" raw-text . raw-text-unix) ("\\.tar\\'" no-conversion . no-conversion) ("\\.po[tx]?\\'\\|\\.po\\." . po-find-file-coding-system) ("\\.\\(tex\\|ltx\\|dtx\\|drv\\)\\'" . latexenc-find-file-coding-system) ("" undecided))))
+
+(modify-coding-system-alist 'file "" 'utf-8-unix)
+
+
+(defun set-bfr-to-8-unx ()
   (interactive)
-  (find-file main))
-(global-set-key (kbd "C-c m") 'jump-to-main-dot-org)
-
-(defun jump-to-tech-dot-org ()
-  (interactive)
-  (find-file tech))
-(global-set-key (kbd "C-c t") 'jump-to-tech-dot-org)
-
-(defun jump-to-routines-dot-org ()
-  (interactive)
-  (find-file routines))
-(global-set-key (kbd "C-c r") 'jump-to-routines-dot-org)
-
-(defun jump-to-ownCloud-dir ()
-  (interactive)
-  (dired owncloud))
-(global-set-key (kbd "C-c o") 'jump-to-ownCloud-dir)
-
-(defun jump-to-Documents-dir ()
-  (interactive)
-  (find-file documents))
-(global-set-key (kbd "C-c d") 'jump-to-Documents-dir)
-
-(defun jump-to-init-dot-el ()
-  (interactive)
-  (find-file init))
-(global-set-key (kbd "C-c i") 'jump-to-init-dot-el)
-
-(defun jump-to-dot-vimrc ()
-  (interactive)
-  (find-file vimrc))
-(global-set-key (kbd "C-c v") 'jump-to-dot-vimrc)
-
-
+  (set-buffer-file-coding-system 'utf-8-unix))
+(global-set-key (kbd "C-c u") 'set-bfr-to-8-unx)
 
 ;;;;; quicker bookmarks key
 
@@ -356,10 +358,9 @@ So this will delete or add empty lines."
 
 (defun use-org-mode-for-dot-txt-files-in-owncloud ()
   (when (and 
-	 ;; (equal (file-name-directory buffer-file-name) owncloud)
-	 (string-match owncloud buffer-file-name)
-	 (string-match "\\.txt\\'" buffer-file-name)
-	 )
+         (string-match "ownCloud" buffer-file-name)
+         (string-match "\\.txt\\'" buffer-file-name)
+         )
     (org-mode)))
 (add-hook 'find-file-hook 'use-org-mode-for-dot-txt-files-in-owncloud)
 
@@ -408,25 +409,29 @@ So this will delete or add empty lines."
 ;; if a file is changed somewhere else (another app, another device), revert to prevent branching mess
 (global-auto-revert-mode)
 
+;;;; spaces not tabs
+
+(setq-default indent-tabs-mode nil)
+
 ;;; ----------------------------------------
 ;;; unused
 ;;;; vim folding
 
 ;; this may make emacs vimrc browsing niftier
-(defun set-vim-foldmarker (fmr)
-  "Set Vim-type foldmarkers for the current buffer"
-  (interactive "sSet local Vim foldmarker: ")
-  (if (equal fmr "")
-      (message "Abort")
-    (setq fmr (regexp-quote fmr))
-    (set (make-local-variable 'outline-regexp)
-	 (concat ".*" fmr "\\([0-9]+\\)"))
-    (set (make-local-variable 'outline-level)
-	 `(lambda ()
-	    (save-excursion
-	      (save-match-data
-		(re-search-forward ,(concat fmr "\\([0-9]+\\)") nil t)
-		(string-to-number (match-string 1))))))))
+;; (defun set-vim-foldmarker (fmr)
+  ;; "Set Vim-type foldmarkers for the current buffer"
+  ;; (interactive "sSet local Vim foldmarker: ")
+  ;; (if (equal fmr "")
+      ;; (message "Abort")
+    ;; (setq fmr (regexp-quote fmr))
+    ;; (set (make-local-variable 'outline-regexp)
+         ;; (concat ".*" fmr "\\([0-9]+\\)"))
+    ;; (set (make-local-variable 'outline-level)
+         ;; `(lambda ()
+            ;; (save-excursion
+              ;; (save-match-data
+                ;; (re-search-forward ,(concat fmr "\\([0-9]+\\)") nil t)
+                ;; (string-to-number (match-string 1))))))))
 
 ;;;; hideshow-org (UNUSED)
 
@@ -436,16 +441,16 @@ So this will delete or add empty lines."
 ;;;; dired load hook
 
 ;; (add-hook 'dired-load-hook 
-	  ;; (function
-	   ;; (lambda ()
-	     ;; (dired-details-hide) ; dired-details,   horizontal
-	     ;; )))
+          ;; (function
+           ;; (lambda ()
+             ;; (dired-details-hide) ; dired-details,   horizontal
+             ;; )))
 
 ;;;; dired mode hook
 
 ;; (add-hook 'dired-mode-hook
-	  ;; (lambda ()
-	    ;; (dired-omit-mode)    ; dired-x,         vertical
+          ;; (lambda ()
+            ;; (dired-omit-mode)    ; dired-x,         vertical
             ;; ))
 
 ;;;; unused windows fonts
@@ -469,30 +474,46 @@ So this will delete or add empty lines."
   ;; )
 ;; (global-set-key (kbd "C-c C-j") 'jump-to-new-window)
 
-;;;; dired-details
+;;;; jump to favorites, drafts
 
-;; hide details, conserving space horizontally
-;; (when (locate-library "dired-details")
-  ;; (require 'dired-details)
-  ;; (dired-details-install)
-  ;; (setq dired-details-hidden-string "")
-  ;; )
+;; (setq somefile "~/somefile.txt")
+;; (setq x '("s" . somefile))
+;; (concat "C-c " (car x))
+;; (find-file (eval (cdr x)))
+
+;; (dolist (x '(("m" . main)
+             ;; ("t" . tech))
+           ;; (global-set-key (kbd (concat "C-c " (car x)))           
+                           ;; (lambda ()
+                             ;; (interactive)
+                             ;; (find-file (eval (cdr x)))
+                             ;; ))))
+
+;; (global-set-key (kbd "C-c A") 
+                ;; (lambda () 
+                  ;; (interactive) 
+                  ;; (find-file fileA)))
+
+;;;; old bookmark+ load, not needed
+
+;; (when (locate-library "bookmark+")  
+  ;; (add-hook 'bookmark-bmenu-mode-hook
+            ;; (lambda ()
+              ;; (load "bookmark+"))))
 
 ;;; customize
 
 ;; a perfectly cogent place for customizations to land
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(bmkp-last-as-first-bookmark-file "c:\\Users\\user-name\\AppData\\Roaming\\.emacs.d\\bookmarks")
- '(custom-safe-themes (quote ("146d24de1bb61ddfa64062c29b5ff57065552a7c4019bee5d869e938782dfc2a" "70cf411fbf9512a4da81aa1e87b064d3a3f0a47b19d7a4850578c8d64cac2353" default))))
+ '(bmkp-last-as-first-bookmark-file "/e/configs/bookmarks"))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(bmkp-heading ((t nil)))
- '(bmkp-local-directory ((t (:background "midnight blue"))))
- '(bmkp-local-file-without-region ((t nil))))
+ )
